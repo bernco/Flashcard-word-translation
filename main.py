@@ -1,17 +1,23 @@
 from tkinter import*
 import pandas
-from random import choice, randint
+from random import choice
 BACKGROUND_COLOR = "#B1DDC6"
 
 # --------------------window-----------------------------
 window = Tk()
 window.title('Flashy')
 window.config(padx=50, pady=50, bg=BACKGROUND_COLOR)
-
 # ----------------csv manager---------------------------
 word_choice = {}
-word_list = pandas.read_csv('D:/PycharmProjects/flash-card-project-start/data/french_words.csv')
-word_list_dict = word_list.to_dict(orient='records')
+word_list_dict = {}
+
+try:
+    word_list = pandas.read_csv('D:/PycharmProjects/flash-card-project-start/data/words_to_learn.csv')
+except FileNotFoundError:
+    original_word_list = pandas.read_csv('D:/PycharmProjects/flash-card-project-start/data/french_words.csv')
+    word_list_dict = original_word_list.to_dict(orient='records')
+else:
+    word_list_dict = word_list.to_dict(orient='records')
 
 
 # ------------------flip card---------------------------------------
@@ -21,15 +27,26 @@ def flip_card():
     canvas.itemconfig(word, text=f"{word_choice['English']}", fill='white')
 
 
+timer = window.after(3000, func=flip_card)
+
+
 # --------------------next word function------------------------
 def next_question():
-    global word_choice
+    global word_choice, timer
+    window.after_cancel(timer)
     word_choice = choice(word_list_dict)
     french_choice = word_choice['French']
     canvas.itemconfig(title, text='French', fill='black')
     canvas.itemconfig(word, text=f'{french_choice}', fill='black')
     canvas.itemconfig(canvas_image, image=card_image_front)
-    window.after(3000, func=flip_card)
+    timer = window.after(3000, func=flip_card)
+
+
+def is_known():
+    word_list_dict.remove(word_choice)
+    words_to_learn = pandas.DataFrame(word_list_dict)
+    words_to_learn.to_csv('data/words_to_learn.csv', index=False)
+    next_question()
 
 
 # ---------------------------canvas design-----------------------
@@ -50,7 +67,7 @@ cross_button.grid(row=2, column=1)
 
 good_button = Button(text='good')
 good_image = PhotoImage(file='D:/PycharmProjects/flash-card-project-start/images/right.png')
-good_button.configure(bg=BACKGROUND_COLOR, image=good_image, highlightthickness=0, command=next_question)
+good_button.configure(bg=BACKGROUND_COLOR, image=good_image, highlightthickness=0, command=is_known)
 good_button.grid(row=2, column=2)
 
 next_question()
